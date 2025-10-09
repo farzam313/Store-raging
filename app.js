@@ -8,9 +8,8 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.json({ message: "API is Running... 🚀" });
+  res.json({ message: "Application is Running... 🚀" });
 });
-
 app.use("/users", userRoutes);
 app.use("/reviews", reviewRoutes);
 
