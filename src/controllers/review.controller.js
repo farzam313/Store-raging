@@ -49,14 +49,12 @@ const createReview = async (req, res) => {
   try {
     const { userId, rating, comment } = req.body;
 
-    // Basic validation
     if (!userId || !rating || !comment) {
       return res.status(400).json({
         error: "User ID, rating, and comment are required",
       });
     }
 
-    // Validate rating is between 1 and 5
     if (rating < 1 || rating > 5) {
       return res.status(400).json({
         error: "Rating must be between 1 and 5",
@@ -111,7 +109,7 @@ const updateReview = async (req, res) => {
     }
     const review = await prisma.review.update({
       where: { id: parseInt(id) },
-      data: updataedData,
+      data: updatedData,
       include: {
         user: { select: { name: true, email: true } },
       },
@@ -139,6 +137,139 @@ const getUserReviews = async (req, res) => {
   }
 };
 
+const getReviewsByRating = async (req, res) => {
+  try {
+    const rating = parseInt(req.params.rating);
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ error: "Rating must be between 1 and 5" });
+    }
+    const reviews = await prisma.review.findMany({
+      where: { rating },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+    res.json(reviews);
+  } catch (err) {
+    console.error("Error getting reviews by rating:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const getRecentReviews = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10; // Default to 10 reviews
+    const reviews = await prisma.review.findMany({
+      take: limit,
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+    res.json(reviews);
+  } catch (err) {
+    console.error("Error getting recent reviews:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const getReviewStats = async (req, res) => {
+  try {
+    const stats = await prisma.$transaction([
+      // Get average rating
+      prisma.review.aggregate({
+        _avg: {
+          rating: true,
+        },
+        _count: {
+          id: true,
+        },
+      }),
+      // Get count by rating
+      prisma.review.groupBy({
+        by: ["rating"],
+        _count: {
+          rating: true,
+        },
+        orderBy: {
+          rating: "desc",
+        },
+      }),
+    ]);
+
+    const [aggregates, ratingDistribution] = stats;
+
+    res.json({
+      averageRating: aggregates._avg.rating,
+      totalReviews: aggregates._count.id,
+      ratingDistribution: ratingDistribution.map((item) => ({
+        rating: item.rating,
+        count: item._count.rating,
+      })),
+    });
+  } catch (err) {
+    console.error("Error getting review statistics:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const getReviewsByDateRange = async (req, res) => {
+  try {
+    const { start, end } = req.query;
+    if (!start || !end) {
+      return res
+        .status(400)
+        .json({ error: "Start and end dates are required" });
+    }
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({ error: "Invalid date format" });
+    }
+
+    const reviews = await prisma.review.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+    res.json(reviews);
+  } catch (err) {
+    console.error("Error getting reviews by date range:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   getAllReviews,
   createReview,
@@ -146,4 +277,8 @@ module.exports = {
   deleteReviewById,
   updateReview,
   getUserReviews,
+  getReviewsByRating,
+  getRecentReviews,
+  getReviewStats,
+  getReviewsByDateRange,
 };

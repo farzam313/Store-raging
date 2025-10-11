@@ -6,20 +6,23 @@ const {
   deleteReviewById,
   updateReview,
   getUserReviews,
+  getReviewsByRating,
+  getRecentReviews,
+  getReviewStats,
+  getReviewsByDateRange,
 } = require("../controllers/review.controller.js");
 
 const router = express.Router();
 
-// Get all reviews
 router.get("/", getAllReviews);
-
-// Create a new review
 router.post("/", createReview);
 router.put("/", updateReview);
 router.delete("/:id", deleteReviewById);
-router.get("/:id", getReviewById);
-// Example: GET /reviews/date?start=2025-01-01&end=2025-12-31
-// Example: GET /reviews/date?start=2025-01-01&end=2025-12-31
+router.get("/recent", getRecentReviews);
+router.get("/stats", getReviewStats);
+router.get("/rating/:rating", getReviewsByRating);
 router.get("/date", getReviewsByDateRange);
+router.get("/user/:userId", getUserReviews);
+router.get("/:id", getReviewById);
 
 module.exports = router;
