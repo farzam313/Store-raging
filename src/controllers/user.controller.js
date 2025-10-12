@@ -42,25 +42,29 @@ const createUser = async (req, res) => {
 const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+
     const user = await prisma.user.findUnique({
-      where: {
-        id: parseInt(id),
-      },
+      where: { id: parseInt(id) },
     });
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    res.json(user);
+    res.status(200).json(user);
   } catch (error) {
-    console.error("Error details:", error);
+    console.error("Error fetching user:", error);
     res.status(500).json({ error: error.message });
   }
 };
+
 const removeUser = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parseInt(req.params.id);
     const user = await prisma.user.delete({
       where: { id: parseInt(id) },
     });
@@ -83,12 +87,10 @@ const updateUser = async (req, res) => {
       return res.status(400).json({ error: "User id is required" });
     }
 
-    // Build the data object dynamically
     const data = {};
     if (name) data.name = name;
     if (email) data.email = email;
 
-    // If nothing to update
     if (Object.keys(data).length === 0) {
       return res
         .status(400)
@@ -142,6 +144,56 @@ const changPassword = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+const getPaginatedUsers = async (req, res) => {
+  try {
+    let { page = 1, size = 10 } = req.query;
+
+    page = parseInt(page);
+    size = parseInt(size);
+
+    const skip = (page - 1) * size;
+    const take = size;
+
+    const users = await prisma.user.findMany({
+      skip,
+      take,
+    });
+
+    const totalUsers = await prisma.user.count();
+    const totalPages = Math.ceil(totalUsers / size);
+
+    res.json({
+      page,
+      size,
+      totalUsers,
+      totalPages,
+      users,
+    });
+  } catch (err) {
+    console.error("Error details:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+const getUserByEmail = async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res
+        .status(400)
+        .json({ error: "Email query parameter is required" });
+    }
+    const user = await prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+    });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.json(user);
+  } catch (err) {
+    console.error("Error details:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
 
 module.exports = {
   getAllUsers,
@@ -150,4 +202,6 @@ module.exports = {
   removeUser,
   updateUser,
   changPassword,
+  getPaginatedUsers,
+  getUserByEmail,
 };
