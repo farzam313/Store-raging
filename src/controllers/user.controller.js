@@ -195,6 +195,31 @@ const getUserByEmail = async (req, res) => {
   }
 };
 
+// Search users by name or email
+const searchUsers = async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query) {
+      return res.status(400).json({ error: "Query parameter is required" });
+    }
+
+    const users = await prisma.user.findMany();
+
+    const result = users.filter(
+      (user) =>
+        user.name.toLowerCase().includes(query.toLowerCase()) ||
+        user.email.toLowerCase().includes(query.toLowerCase())
+    );
+
+    res.json(result);
+  } catch (err) {
+    console.error("Search error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = { searchUsers };
+
 module.exports = {
   getAllUsers,
   createUser,
@@ -204,4 +229,5 @@ module.exports = {
   changPassword,
   getPaginatedUsers,
   getUserByEmail,
+  searchUsers,
 };
