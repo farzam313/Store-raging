@@ -1,6 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
-
+const bcrypt = require("bcrypt");
 const getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany();
@@ -20,16 +20,18 @@ const createUser = async (req, res) => {
         .status(400)
         .json({ error: "Email, name, and password are required" });
     }
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     const user = await prisma.user.create({
       data: {
         email,
         name,
-        password,
+        password: hashedPassword,
       },
     });
-
-    res.status(201).json(user);
+    const { password: pwd, ...userwithoutPassword } = user;
+    res.status(201).json(userwithoutPassword);
   } catch (error) {
     console.error("Error details:", error);
     if (error.code === "P2002") {
