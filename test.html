@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Auth Test</title>
+</head>
+
+<body>
+    <h1>Authentication Test</h1>
+
+    <h2>Register</h2>
+    <input id="regEmail" placeholder="Email" value="test@example.com">
+    <input id="regPassword" type="password" placeholder="Password" value="password123">
+    <input id="regName" placeholder="Name" value="Test User">
+    <button onclick="register()">Register</button>
+
+    <h2>Login</h2>
+    <input id="loginEmail" placeholder="Email" value="test@example.com">
+    <input id="loginPassword" type="password" placeholder="Password" value="password123">
+    <button onclick="login()">Login</button>
+
+    <h2>Get Current User</h2>
+    <button onclick="getCurrentUser()">Get Me</button>
+
+    <h2>Response:</h2>
+    <pre id="response"></pre>
+
+    <script>
+        let token = '';
+
+        async function register() {
+            const response = await fetch('http://localhost:4000/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: document.getElementById('regEmail').value,
+                    password: document.getElementById('regPassword').value,
+                    name: document.getElementById('regName').value
+                })
+            });
+            const data = await response.json();
+            token = data.token;
+            document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function login() {
+            const response = await fetch('http://localhost:4000/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: document.getElementById('loginEmail').value,
+                    password: document.getElementById('loginPassword').value
+                })
+            });
+            const data = await response.json();
+            token = data.token;
+            document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function getCurrentUser() {
+            const response = await fetch('http://localhost:4000/auth/me', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+        }
+    </script>
+</body>
+
+</html>
